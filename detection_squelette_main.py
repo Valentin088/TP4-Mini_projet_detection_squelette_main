@@ -105,7 +105,7 @@ while cap.isOpened():
             # ------------------------------------------------------------------
             # C. INTERACTION ENTRE LES BOUTS DE DOIGTS
             # ------------------------------------------------------------------
-            THRESHOLD_DIST = 55  # Distance max en pixels pour déclencher l'effet
+            THRESHOLD_DIST = 65  # Distance max en pixels pour déclencher l'effet
 
             # Coordonnées réelles en pixels de chaque bout de doigt
             tip_coords = [(int(hand_landmarks[idx].x * w), int(hand_landmarks[idx].y * h)) for idx in ALL_FINGER_TIPS]
