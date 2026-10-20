@@ -102,6 +102,44 @@ while cap.isOpened():
                 cx, cy = int(lm.x * w), int(lm.y * h)
                 cv2.circle(frame, (cx, cy), 5, (0, 0, 255), cv2.FILLED)
 
+            # ------------------------------------------------------------------
+            # C. INTERACTION ENTRE LES BOUTS DE DOIGTS
+            # ------------------------------------------------------------------
+            THRESHOLD_DIST = 55  # Distance max en pixels pour déclencher l'effet
+
+            # Coordonnées réelles en pixels de chaque bout de doigt
+            tip_coords = [(int(hand_landmarks[idx].x * w), int(hand_landmarks[idx].y * h)) for idx in ALL_FINGER_TIPS]
+
+            # Comparaison de toutes les paires de doigts de la main
+            for i in range(len(tip_coords)):
+                for j in range(i + 1, len(tip_coords)):
+                    ptA = tip_coords[i]
+                    ptB = tip_coords[j]
+
+                    # Distance euclidienne entre les deux sommets
+                    dist = math.hypot(ptA[0] - ptB[0], ptA[1] - ptB[1])
+
+                    if dist < THRESHOLD_DIST:
+                        ratio = max(0.0, min(1.0, dist / THRESHOLD_DIST))
+
+                        # Épaisseur du trait et taille du point central selon la distance
+                        thickness = int(np.interp(dist, [10, THRESHOLD_DIST], [8, 2]))
+                        center_radius = int(np.interp(dist, [10, THRESHOLD_DIST], [16, 4]))
+
+                        # Transition de couleur BGR (Vert quand éloignés -> Rouge quand très proches)
+                        green = int(255 * ratio)
+                        red = int(255 * (1.0 - ratio))
+                        color = (0, green, red)
+
+                        # Point milieu de la liaison
+                        mid_x = (ptA[0] + ptB[0]) // 2
+                        mid_y = (ptA[1] + ptB[1]) // 2
+
+                        # Tracé du trait d'interaction et du point central d'impact
+                        cv2.line(frame, ptA, ptB, color, thickness)
+                        cv2.circle(frame, (mid_x, mid_y), center_radius, color, cv2.FILLED)
+                        cv2.circle(frame, (mid_x, mid_y), center_radius + 2, (255, 255, 255), 1)
+
     # ==========================================================================
     # 3. STATS & AFFICHAGE
     # ==========================================================================
