@@ -58,7 +58,7 @@ while True:
     cv2.imshow("Tracking de la main", img)
 
     # Quitter la boucle si l'utilisateur appuie sur la touche 'd'
-    if cv2.waitKey(1) & 0xFF == ord('d'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 # Libération des ressources de la caméra et fermeture des fenêtres
