@@ -12,6 +12,7 @@ Ce projet en Python utilise **OpenCV** et **MediaPipe Tasks (Hand Landmarker)** 
 - **Comptage dynamique des doigts** :
   - **Pouce** : Évaluation selon l'axe horizontal ($X$) adaptée à la latéralité de la main (`Left` / `Right`) compensée par l'effet miroir.
   - **Autres doigts** : Évaluation selon l'axe vertical ($Y$) en comparant la position de l'extrémité (`tip`) par rapport à l'articulation inférieure.
+- **Reconnaissance de gestes** : Affiche **OK**, **PEACE**, **ROCK** (index et auriculaire levés), **MAIN OUVERTE**, **POUCE LEVÉ**, **POUCE BAISSÉ** et **POING** selon la position des doigts.
 - **Effet visuel de proximité (Interaction)** :
   - Un trait dynamique relie les extrémités des doigts lorsqu'ils se rapprochent.
   - Un point d'impact central s'affiche et grossit à mesure que la distance diminue.
