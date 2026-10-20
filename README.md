@@ -1,23 +1,29 @@
-# Détection de Squelette de Main et Comptage de Doigts
+# Détection de Squelette de Main, Comptage de Doigts & Effet de Proximité
 
-Ce projet en Python utilise **OpenCV** et **MediaPipe Tasks (Hand Landmarker)** pour capturer le flux vidéo d'une webcam en temps réel, détecter les repères anatomiques des mains et compter le nombre de doigts levés.
+Ce projet en Python utilise **OpenCV** et **MediaPipe Tasks (Hand Landmarker)** pour capturer le flux vidéo d'une webcam en temps réel, analyser la structure anatomique des mains, compter le nombre de doigts levés et générer un effet visuel dynamique de rapprochement entre les extrémités.
+
+---
 
 ## 🚀 Fonctionnalités
 
-- **Capture en temps réel** via la webcam avec effet miroir.
-- **Détection multi-mains** (jusqu'à 2 mains simultanément) via la nouvelle API `mediapipe.tasks`.
-- **Rendu graphique** des repères de la main.
+- **Tracking en temps réel** : Capture fluide depuis la webcam avec retour miroir pour une ergonomie naturelle.
+- **Détection multi-mains** : Prise en charge simultanée de 2 mains via l'API moderne `mediapipe.tasks`.
+- **Squelette anatomique complet** : Tracé personnalisé des 21 repères (`landmarks`) et des 20 connexions articulaires.
 - **Comptage dynamique des doigts** :
-  - Traitement adapté du pouce en fonction de la latéralité de la main (`Left` / `Right`) sur l'axe X.
-  - Traitement des 4 autres doigts sur l'axe Y (hauteur relative des extrémités).
-- **Affichage dynamique** du total des doigts levés à l'écran.
+  - **Pouce** : Évaluation selon l'axe horizontal ($X$) adaptée à la latéralité de la main (`Left` / `Right`) compensée par l'effet miroir.
+  - **Autres doigts** : Évaluation selon l'axe vertical ($Y$) en comparant la position de l'extrémité (`tip`) par rapport à l'articulation inférieure.
+- **Effet visuel de proximité (Interaction)** :
+  - Un trait dynamique relie les extrémités des doigts lorsqu'ils se rapprochent.
+  - Un point d'impact central s'affiche et grossit à mesure que la distance diminue.
+  - Transition dynamique de couleur (du **vert** au **rouge**) basée sur la distance euclidienne en pixels.
+- **Indicateurs à l'écran** : Affichage en direct du nombre d'images par seconde (**FPS**) et du total des doigts levés.
 
 ---
 
 ## 🛠️ Prérequis
 
-- Python 3.9 à 3.12 (ou version compatible avec MediaPipe)
-- Une webcam fonctionnelle
+- **Python** : 3.9 à 3.12 (ou 3.14+ avec l'API Tasks)
+- **Webcam** fonctionnelle
 
 ---
 
@@ -28,13 +34,4 @@ Ce projet en Python utilise **OpenCV** et **MediaPipe Tasks (Hand Landmarker)** 
 2. **Installer les dépendances nécessaires :**
 
    ```bash
-   pip install opencv-python mediapipe
-
----
-
-## Lancer le projet
-
-**Exécuter la commande**
-
-```bash
-python detection_squelette.py
+   pip install opencv-python mediapipe numpy
