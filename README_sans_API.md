@@ -30,3 +30,12 @@ Ce projet en Python illustre l'usage de la **vision par ordinateur classique** (
 
    ```bash
    pip install opencv-python numpy
+
+---
+
+## Lancer le projet
+
+**Exécuter la commande**
+
+```bash
+python detection_squelette_sans_api.py
