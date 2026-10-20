@@ -19,8 +19,7 @@ Hands = mpHands.Hands(
     min_tracking_confidence=0.5
 )
 
-# Landmarks des extrémités des doigts (Pouce: 4, Index: 8, Majeur: 12, Annulaire: 16, Auriculaire: 20)
-ALL_FINGER_TIPS = [4, 8, 12, 16, 20]
+# IDs des extrémités des 4 doigts (Index, Majeur, Annulaire, Auriculaire)
 finger_tips = [8, 12, 16, 20]
 
 # Variables pour le calcul des FPS
@@ -58,13 +57,14 @@ while True:
             # ------------------------------------------------------------------
             # Avec cv2.flip(), l'étiquette "Left" correspond visuellement à votre main droite et inversement
             if hand_label == "Left":
-                # Logique inversée pour compenser le miroir horizontal
-                if handLms.landmark[4].x < handLms.landmark[3].x:
+                # Pour la main gauche à l'écran, le pouce ouvert est vers la droite (X_bout > X_articulation)
+                if handLms.landmark[4].x > handLms.landmark[3].x:
                     fingers_up.append(1)
                 else:
                     fingers_up.append(0)
             else:
-                if handLms.landmark[4].x > handLms.landmark[3].x:
+                # Pour la main droite à l'écran, le pouce ouvert est vers la gauche (X_bout < X_articulation)
+                if handLms.landmark[4].x < handLms.landmark[3].x:
                     fingers_up.append(1)
                 else:
                     fingers_up.append(0)
@@ -85,51 +85,7 @@ while True:
             # ------------------------------------------------------------------
             mpDraw.draw_landmarks(img, handLms, mpHands.HAND_CONNECTIONS)
 
-            # Cercle violet sur le poignet (landmark 0) comme dans le tutoriel
-            cx0, cy0 = int(handLms.landmark[0].x * w), int(handLms.landmark[0].y * h)
-            cv2.circle(img, (cx0, cy0), 15, (255, 0, 255), cv2.FILLED)
-
-            # ------------------------------------------------------------------
-            # D. EFFET INTERACTIF ENTRE DOIGTS PROCHES
-            # ------------------------------------------------------------------
-            THRESHOLD_DIST = 100  # Seuil de déclenchement en pixels
-
-            # Coordonnées réelles en pixels de chaque bout de doigt
-            tip_coords = [(int(handLms.landmark[idx].x * w), int(handLms.landmark[idx].y * h)) for idx in ALL_FINGER_TIPS]
-
-            # Comparaison de toutes les paires de doigts de la main
-            for i in range(len(tip_coords)):
-                for j in range(i + 1, len(tip_coords)):
-                    ptA = tip_coords[i]
-                    ptB = tip_coords[j]
-
-                    # Calcul de la distance euclidienne
-                    dist = math.hypot(ptA[0] - ptB[0], ptA[1] - ptB[1])
-
-                    if dist < THRESHOLD_DIST:
-                        ratio = max(0.0, min(1.0, dist / THRESHOLD_DIST))
-
-                        # L'épaisseur du trait et la taille du point augmentent à l'approche
-                        thickness = int(np.interp(dist, [10, THRESHOLD_DIST], [8, 2]))
-                        center_radius = int(np.interp(dist, [10, THRESHOLD_DIST], [16, 4]))
-
-                        # Transition de couleur (BGR) : Vert -> Jaune -> Rouge
-                        green = int(255 * ratio)
-                        red = int(255 * (1.0 - ratio))
-                        color = (0, green, red)
-
-                        # Centre du segment
-                        mid_x = (ptA[0] + ptB[0]) // 2
-                        mid_y = (ptA[1] + ptB[1]) // 2
-
-                        # Tracé de la liaison et du point milieu
-                        cv2.line(img, ptA, ptB, color, thickness)
-                        cv2.circle(img, (mid_x, mid_y), center_radius, color, cv2.FILLED)
-                        cv2.circle(img, (mid_x, mid_y), center_radius + 2, (255, 255, 255), 1)
-
-    # --------------------------------------------------------------------------
-    # AFFICHAGE DES INFOS & FPS
-    # --------------------------------------------------------------------------
+    # Calcul et affichage du nombre d'images par seconde (FPS)
     CurrentTime = time.time()
     fps = 1 / (CurrentTime - PreviousTime) if (CurrentTime - PreviousTime) > 0 else 0
     PreviousTime = CurrentTime
