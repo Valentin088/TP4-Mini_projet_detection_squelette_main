@@ -7,8 +7,10 @@ import numpy as np
 # 1. Initialisation de la webcam (0 = caméra intégrée/par défaut)
 cap = cv2.VideoCapture(0)
 
-# 2. Initialisation des modules MediaPipe (API legacy)
+# 2. Initialisation des objets MediaPipe
 mpHands = mp.solutions.hands
+mpDraw = mp.solutions.drawing_utils
+
 Hands = mpHands.Hands(
     static_image_mode=False,
     max_num_hands=2,
@@ -16,9 +18,8 @@ Hands = mpHands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
-mpDraw = mp.solutions.drawing_utils
 
-# IDs des extrémités de tous les doigts (Pouce: 4, Index: 8, Majeur: 12, Annulaire: 16, Auriculaire: 20)
+# Landmarks des extrémités des doigts (Pouce: 4, Index: 8, Majeur: 12, Annulaire: 16, Auriculaire: 20)
 ALL_FINGER_TIPS = [4, 8, 12, 16, 20]
 finger_tips = [8, 12, 16, 20]
 
@@ -32,11 +33,11 @@ while True:
         print("Impossible d'accéder à la webcam.")
         break
 
-    # Application de l'effet miroir pour un comportement plus naturel
+    # Application du miroir horizontal
     img = cv2.flip(img, 1)
     h, w, c = img.shape
 
-    # MediaPipe nécessite une image au format RGB (OpenCV utilise le format BGR)
+    # MediaPipe nécessite une image en format RGB
     imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
     # Traitement de l'image et détection des repères
@@ -49,25 +50,27 @@ while True:
         for handLms, handedness in zip(result.multi_hand_landmarks, result.multi_handedness):
             fingers_up = []
             
-            # Récupération du type de main (Left / Right)
+            # Récupération de la latéralité (Gaucher / Droitier)
             hand_label = handedness.classification[0].label
 
             # ------------------------------------------------------------------
-            # A. Détection du Pouce (Axe X corrigé avec l'effet miroir)
+            # A. COMPTAGE DU POUCE (Axe X) - Ajusté avec l'effet miroir
             # ------------------------------------------------------------------
+            # Avec cv2.flip(), l'étiquette "Left" correspond visuellement à votre main droite et inversement
             if hand_label == "Left":
-                if handLms.landmark[4].x > handLms.landmark[3].x:
-                    fingers_up.append(1)
-                else:
-                    fingers_up.append(0)
-            else:
+                # Logique inversée pour compenser le miroir horizontal
                 if handLms.landmark[4].x < handLms.landmark[3].x:
                     fingers_up.append(1)
                 else:
                     fingers_up.append(0)
+            else:
+                if handLms.landmark[4].x > handLms.landmark[3].x:
+                    fingers_up.append(1)
+                else:
+                    fingers_up.append(0)
 
             # ------------------------------------------------------------------
-            # B. Détection des 4 autres doigts (Axe Y)
+            # B. COMPTAGE DES 4 AUTRES DOIGTS (Axe Y)
             # ------------------------------------------------------------------
             for tip in finger_tips:
                 if handLms.landmark[tip].y < handLms.landmark[tip - 2].y:
@@ -75,16 +78,21 @@ while True:
                 else:
                     fingers_up.append(0)
 
-            # Compte des doigts levés pour cette main
             total_fingers += fingers_up.count(1)
 
-            # Dessine le squelette de la main
+            # ------------------------------------------------------------------
+            # C. TRACÉ DU SQUELETTE
+            # ------------------------------------------------------------------
             mpDraw.draw_landmarks(img, handLms, mpHands.HAND_CONNECTIONS)
 
+            # Cercle violet sur le poignet (landmark 0) comme dans le tutoriel
+            cx0, cy0 = int(handLms.landmark[0].x * w), int(handLms.landmark[0].y * h)
+            cv2.circle(img, (cx0, cy0), 15, (255, 0, 255), cv2.FILLED)
+
             # ------------------------------------------------------------------
-            # C. Effet dynamique d'approche entre les extrémités des doigts
+            # D. EFFET INTERACTIF ENTRE DOIGTS PROCHES
             # ------------------------------------------------------------------
-            THRESHOLD_DIST = 100  # Distance max en pixels pour afficher le lien
+            THRESHOLD_DIST = 100  # Seuil de déclenchement en pixels
 
             # Coordonnées réelles en pixels de chaque bout de doigt
             tip_coords = [(int(handLms.landmark[idx].x * w), int(handLms.landmark[idx].y * h)) for idx in ALL_FINGER_TIPS]
@@ -101,40 +109,41 @@ while True:
                     if dist < THRESHOLD_DIST:
                         ratio = max(0.0, min(1.0, dist / THRESHOLD_DIST))
 
-                        # Épaisseur et taille du point dynamique
+                        # L'épaisseur du trait et la taille du point augmentent à l'approche
                         thickness = int(np.interp(dist, [10, THRESHOLD_DIST], [8, 2]))
                         center_radius = int(np.interp(dist, [10, THRESHOLD_DIST], [16, 4]))
 
-                        # Transition de couleur BGR : Vert -> Jaune -> Rouge
+                        # Transition de couleur (BGR) : Vert -> Jaune -> Rouge
                         green = int(255 * ratio)
                         red = int(255 * (1.0 - ratio))
                         color = (0, green, red)
 
-                        # Point milieu du segment
+                        # Centre du segment
                         mid_x = (ptA[0] + ptB[0]) // 2
                         mid_y = (ptA[1] + ptB[1]) // 2
 
-                        # Tracé de la ligne et du point central d'impact
+                        # Tracé de la liaison et du point milieu
                         cv2.line(img, ptA, ptB, color, thickness)
                         cv2.circle(img, (mid_x, mid_y), center_radius, color, cv2.FILLED)
                         cv2.circle(img, (mid_x, mid_y), center_radius + 2, (255, 255, 255), 1)
 
-    # Calcul et affichage du nombre d'images par seconde (FPS)
+    # --------------------------------------------------------------------------
+    # AFFICHAGE DES INFOS & FPS
+    # --------------------------------------------------------------------------
     CurrentTime = time.time()
     fps = 1 / (CurrentTime - PreviousTime) if (CurrentTime - PreviousTime) > 0 else 0
     PreviousTime = CurrentTime
 
-    # Affichage des informations sur la vidéo
+    # Textes superposés à la vidéo
     cv2.putText(img, f'FPS: {int(fps)}', (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
-    cv2.putText(img, f'Doigts: {total_fingers}', (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
+    cv2.putText(img, f'Doigts: {total_fingers}', (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
 
-    # Affichage de la vidéo dans une fenêtre
-    cv2.imshow("Tracking de la main & Detection des doigts", img)
+    cv2.imshow("Hand Tracking MediaPipe", img)
 
-    # Quitter la boucle si l'utilisateur appuie sur la touche 'q'
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    # Quitter la boucle avec la touche 'd' (comme dans le tutoriel) ou 'q'
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('d') or key == ord('q'):
         break
 
-# Libération des ressources de la caméra et fermeture des fenêtres
 cap.release()
 cv2.destroyAllWindows()

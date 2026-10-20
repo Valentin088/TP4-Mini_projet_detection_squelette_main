@@ -106,7 +106,7 @@ while cap.isOpened():
             # C. DÉTECTION ET EFFET DE PROXIMITÉ ENTRE LES BOUTS DE DOIGTS
             # ------------------------------------------------------------------
             # Seuil de distance max en pixels pour déclencher le lien
-            THRESHOLD_DIST = 100 
+            THRESHOLD_DIST = 60
 
             # Récupère les coordonnées pixel de toutes les extrémités
             tip_coords = [(int(hand_landmarks[idx].x * w), int(hand_landmarks[idx].y * h)) for idx in ALL_FINGER_TIPS]
