@@ -29,3 +29,12 @@ Ce projet en Python utilise **OpenCV** et **MediaPipe Tasks (Hand Landmarker)** 
 
    ```bash
    pip install opencv-python mediapipe
+
+---
+
+## Lancer le projet
+
+**Exécuter la commande**
+
+```bash
+python detection_squelette.py
