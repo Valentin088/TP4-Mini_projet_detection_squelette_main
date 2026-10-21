@@ -38,6 +38,67 @@ finger_tips_no_thumb = [8, 12, 16, 20]
 
 prev_time = 0
 
+
+def detect_gesture(fingers_up, hand_landmarks):
+    """Reconnaît des gestes courants à partir des doigts et des landmarks."""
+    thumb_tip = hand_landmarks[4]
+    index_tip = hand_landmarks[8]
+    palm_width = math.hypot(
+        hand_landmarks[5].x - hand_landmarks[17].x,
+        hand_landmarks[5].y - hand_landmarks[17].y,
+    )
+
+    if palm_width == 0:
+        return None
+
+    thumb_index_distance = math.hypot(
+        thumb_tip.x - index_tip.x,
+        thumb_tip.y - index_tip.y,
+    )
+
+    if (
+        thumb_index_distance / palm_width <= 0.35
+        and all(fingers_up[index] for index in (2, 3, 4))
+    ):
+        return "OK"
+
+    if (
+        fingers_up[1]
+        and fingers_up[2]
+        and not fingers_up[3]
+        and not fingers_up[4]
+    ):
+        return "PEACE"
+
+    if (
+        fingers_up[1]
+        and not fingers_up[2]
+        and not fingers_up[3]
+        and fingers_up[4]
+    ):
+        return "ROCK"
+
+    if all(fingers_up):
+        return "MAIN OUVERTE"
+
+    other_fingers_folded = not any(fingers_up[1:])
+    thumb_to_palm = math.hypot(
+        thumb_tip.x - hand_landmarks[9].x,
+        thumb_tip.y - hand_landmarks[9].y,
+    )
+    if other_fingers_folded and thumb_to_palm <= 0.7 * palm_width:
+        return "POING"
+
+    thumb_relative_to_wrist = thumb_tip.y - hand_landmarks[0].y
+    if other_fingers_folded and thumb_relative_to_wrist <= -0.25 * palm_width:
+        return "POUCE LEVÉ"
+
+    if other_fingers_folded and thumb_relative_to_wrist >= 0.25 * palm_width:
+        return "POUCE BAISSÉ"
+
+    return None
+
+
 # ==============================================================================
 # 2. FLUX VIDÉO WEBCAM
 # ==============================================================================
@@ -59,13 +120,13 @@ while cap.isOpened():
     total_fingers = 0
 
     if results.hand_landmarks:
-        for hand_landmarks in results.hand_landmarks:
+        for hand_index, hand_landmarks in enumerate(results.hand_landmarks):
             fingers_up = []
 
             # ------------------------------------------------------------------
             # A. COMPTAGE DES DOIGTS
             # ------------------------------------------------------------------
-            hand_label = results.handedness[results.hand_landmarks.index(hand_landmarks)][0].category_name
+            hand_label = results.handedness[hand_index][0].category_name
 
             # Pouce
             if hand_label == "Left":
@@ -87,6 +148,7 @@ while cap.isOpened():
                     fingers_up.append(0)
 
             total_fingers += fingers_up.count(1)
+            gesture = detect_gesture(fingers_up, hand_landmarks)
 
             # ------------------------------------------------------------------
             # B. DESSIN DU SQUELETTE
@@ -139,6 +201,19 @@ while cap.isOpened():
                         cv2.line(frame, ptA, ptB, color, thickness)
                         cv2.circle(frame, (mid_x, mid_y), center_radius, color, cv2.FILLED)
                         cv2.circle(frame, (mid_x, mid_y), center_radius + 2, (255, 255, 255), 1)
+
+            if gesture:
+                hand_x = min(int(lm.x * w) for lm in hand_landmarks)
+                hand_y = min(int(lm.y * h) for lm in hand_landmarks)
+                cv2.putText(
+                    frame,
+                    f"Geste: {gesture}",
+                    (hand_x, max(30, hand_y - 15)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 255, 255),
+                    2,
+                )
 
     # ==========================================================================
     # 3. STATS & AFFICHAGE
